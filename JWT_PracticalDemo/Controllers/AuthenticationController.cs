@@ -11,7 +11,7 @@ namespace JWT_PracticalDemo.Controllers
     public class AuthenticationController : ControllerBase
     {
         private readonly IAuthenticationService authenticationService;
-
+        public static User user { get; set; } = new();
         public AuthenticationController(IAuthenticationService authenticationService)
         {
             this.authenticationService = authenticationService;
@@ -25,8 +25,6 @@ namespace JWT_PracticalDemo.Controllers
         [HttpPost("register")]
         public async Task<ActionResult<User>> Register(UserDTO userDTO)
         {
-            User user = new User();
-
             //using tuples to get our password hash and password salt from the method and returning the user.
             (var passwordHash, var passwordSalt) = authenticationService.CreatePasswordHash(userDTO.Password);
             user.PasswordHash = passwordHash;
@@ -34,6 +32,24 @@ namespace JWT_PracticalDemo.Controllers
             user.Username = userDTO.Username;
 
             return Ok(user);
+        }
+
+        /// <summary>
+        /// Api route to login using username and password
+        /// </summary>
+        /// <param name="userDTO"></param>
+        /// <returns>string of the generated token</returns>
+        [HttpPost("login")]
+        public async Task<ActionResult<string>> Login(UserDTO userDTO)
+        {
+            if (userDTO.Username != user.Username)
+                return NotFound("User doesn't exist");
+
+            if (!authenticationService.VerifyPasswordHash(userDTO.Password, user.PasswordSalt, user.PasswordHash))
+                return BadRequest("Wrong password");
+
+
+            return Ok(authenticationService.GenerateToken(user));
         }
     }
 }
