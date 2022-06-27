@@ -1,8 +1,11 @@
 ﻿using JWT_PracticalDemo.DTO;
 using JWT_PracticalDemo.Models;
 using JWT_PracticalDemo.Services;
+using JWT_PracticalDemo.Services.UserService;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace JWT_PracticalDemo.Controllers
 {
@@ -11,10 +14,13 @@ namespace JWT_PracticalDemo.Controllers
     public class AuthenticationController : ControllerBase
     {
         private readonly IAuthenticationService authenticationService;
+        private readonly IUserService userService;
+
         public static User user { get; set; } = new();
-        public AuthenticationController(IAuthenticationService authenticationService)
+        public AuthenticationController(IAuthenticationService authenticationService, IUserService userService)
         {
             this.authenticationService = authenticationService;
+            this.userService = userService;
         }
 
         /// <summary>
@@ -50,6 +56,26 @@ namespace JWT_PracticalDemo.Controllers
 
 
             return Ok(authenticationService.GenerateToken(user));
+        }
+
+
+        [HttpGet("currentUser"), Authorize]
+        public async Task<ActionResult<object>> GetCurrentUser()
+        {
+            ////Two ways to get username
+            //var username = User?.Identity?.Name;
+            //var username2 = User.FindFirstValue(ClaimTypes.Name);
+            
+            //var role = User.FindFirstValue(ClaimTypes.Role);
+
+            //return Ok(new
+            //{
+            //    username = username,
+            //    username2 = username2,
+            //    role = role
+            //});
+
+            return Ok(userService.GetCurrentUser());
         }
     }
 }
