@@ -9,10 +9,12 @@ namespace JWT_PracticalDemo.Services
     public class AuthenticationService : IAuthenticationService
     {
         private readonly IConfiguration configuration;
+        private readonly IHttpContextAccessor httpContextAccessor;
 
-        public AuthenticationService(IConfiguration configuration)
+        public AuthenticationService(IConfiguration configuration, IHttpContextAccessor httpContextAccessor)
         {
             this.configuration = configuration;
+            this.httpContextAccessor = httpContextAccessor;
         }
 
 
@@ -29,6 +31,22 @@ namespace JWT_PracticalDemo.Services
                 var passwordHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
                 return (passwordHash, passwordSalt);
             }  
+        }
+
+        /// <summary>
+        /// Generate refresh token
+        /// </summary>
+        /// <returns>RefreshToken</returns>
+        public RefreshToken GenerateRefreshToken()
+        {
+            var refreshToken = new RefreshToken
+            {
+                Token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
+                ExpirationDate = DateTime.Now.AddDays(7),
+                CreationDate = DateTime.Now
+            };
+
+            return refreshToken;
         }
 
 
@@ -60,6 +78,27 @@ namespace JWT_PracticalDemo.Services
             var jwt = new JwtSecurityTokenHandler().WriteToken(token);
 
             return jwt;
+        }
+
+        /// <summary>
+        /// Sets a refresh token to a user
+        /// </summary>
+        /// <param name="refreshToken"></param>
+        /// <param name="user"></param>
+        public void SetRefreshToken(RefreshToken refreshToken, User user)
+        {
+            var cookieOption = new CookieOptions
+            {
+                HttpOnly = true,
+                Expires = refreshToken.ExpirationDate
+            };
+
+            httpContextAccessor.HttpContext.Response.Cookies.Append("refreshToken",refreshToken.Token, cookieOption);
+
+            user.RefreshToken = refreshToken.Token;
+            user.CreationDate = refreshToken.CreationDate;
+            user.ExpirationDate = refreshToken.ExpirationDate;
+
         }
 
         /// <summary>

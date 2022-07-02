@@ -54,8 +54,31 @@ namespace JWT_PracticalDemo.Controllers
             if (!authenticationService.VerifyPasswordHash(userDTO.Password, user.PasswordSalt, user.PasswordHash))
                 return BadRequest("Wrong password");
 
+            var refreshToken = authenticationService.GenerateRefreshToken();
+            authenticationService.SetRefreshToken(refreshToken, user);
 
             return Ok(authenticationService.GenerateToken(user));
+        }
+
+
+        /// <summary>
+        /// Endpoint to generate a new access token via a refresh token
+        /// </summary>
+        [HttpPost("refresh-token")]
+        public async Task<ActionResult<string>> GetNewToken()
+        {
+            var refreshToken = Request.Cookies["refreshToken"];
+
+            if(! user.RefreshToken.Equals(refreshToken))
+                return Unauthorized("Invalid refresh token");
+            if (user.ExpirationDate < DateTime.Now)
+                return Unauthorized("Refresh Token Expired");
+
+            var token = authenticationService.GenerateToken(user);
+            var newRefreshToken = authenticationService.GenerateRefreshToken();
+            authenticationService.SetRefreshToken(newRefreshToken, user);
+
+            return Ok(token);
         }
 
 
